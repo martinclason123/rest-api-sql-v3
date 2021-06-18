@@ -40,7 +40,7 @@ router.post(
   asyncHandler(async (req, res) => {
     try {
       await User.create(req.body);
-
+      res.setHeader("Location", "/");
       res.status(201).end();
     } catch (error) {
       if (
@@ -71,6 +71,7 @@ router.get(
         },
       ],
     });
+
     res.status(200).json(courses);
   })
 );
@@ -110,7 +111,10 @@ router.post(
       if (!course) {
         res.status(400).json({ message: "No course information received" });
       } else {
-        await Course.create(course);
+        console.log(course);
+        // creates the course, and retireves the id to send back in the location header
+        await Course.create(course).then((result) => (course.id = result.id));
+        res.setHeader("Location", `/api/courses/${course.id}`);
         res.status(201).end();
       }
     } catch (error) {
@@ -154,7 +158,7 @@ router.put(
         };
         // Does not allow users to change courses they do not own
         if (user.id !== course.userId) {
-          res.status(400).json({ message: "You do not own this course" });
+          res.status(403).json({ message: "You do not own this course" });
         }
         await Course.update(req.body, selector);
         res.status(204).end();
@@ -184,14 +188,15 @@ router.delete(
     } else {
       // Does not allow users to delete courses they do not own
       if (user.id !== course.userId) {
-        res.status(400).json({ message: "You do not own this course" });
-      }
+        res.status(403).json({ message: "You do not own this course" }); 
+      } else {
       Course.destroy({
         where: {
           id: req.params.id,
         },
       });
       res.status(204).end();
+     }
     }
   })
 );
